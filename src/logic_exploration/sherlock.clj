@@ -12,35 +12,36 @@
                               [3 :dog :horse :fox :snails ]
                               [4 :blue :ivory :green :red :yellow ]]))))
 
-(def sherlock-map
-  (apply hash-map (flatten (map (fn [[n & r]] (map vector r (repeat n)))
-                             [[0 :bill :mary :devil ]
-                              [1 :red :blue :yellow ]
-                              [2 1 2 3]
-                              ]))))
+(defn sherlock-map [cols rows]
+  (let [cols (take cols [[:bill :mary :devil :ugly :beardy :baby :clown :bignose]
+                         [:red :blue :yellow :green :white :pink :brown :cyan]
+                         [1 2 3 4 5 6 7 8]
+                         [:orange :apple :bananna :pear :cherry :grape :strawberry :lemon]
+                         [:stop :hospital :speed :one-way :rr :dead-end :no-p :yield]
+                         ["s" "h" "e" "r" "l" "o" "c" "k"]
+                         [:america :uk :japan :canada :france :isreal :oz :germany]
+                         [:hammer :screwdriver :square :roller :level :drill :tape :brush]
+                        ])
+        rows (map #(take rows %) cols)]
+  (apply hash-map (flatten (map-indexed (fn [n r] (map vector r (repeat n))) rows)))))
 
-(def col-map sherlock-map)
+(def ^{:dynamic true} *col-map* (sherlock-map 3 3))
+(def ^{:dynamic true} *game-rows* 3)
+(def ^{:dynamic true} *game-cols* 3)
 
-(def game-rows (inc (apply max (vals col-map))))
-; FIXME
-(def game-cols 3)
 
 (defn make-col
-  ([x] (let [xp (col-map x)]
+  ([x] (let [xp (*col-map* x)]
 ;         (println x xp)
-         (vec (for [i (range game-rows)] (if (= i xp) x (lvar))))))
-  ([x y] (let [xp (col-map x) yp (col-map y)]
+         (vec (for [i (range *game-rows*)] (if (= i xp) x (lvar))))))
+  ([x y] (let [xp (*col-map* x) yp (*col-map* y)]
 ;           (println x xp y yp)
-           (vec (for [i (range game-rows)] (condp = i xp x yp y (lvar))))))
-  ([x y z] (let [xp (col-map x) yp (col-map y) zp (col-map z)]
+           (vec (for [i (range *game-rows*)] (condp = i xp x yp y (lvar))))))
+  ([x y z] (let [xp (*col-map* x) yp (*col-map* y) zp (*col-map* z)]
 ;             (println x xp y yp z zp)
-             (vec (for [i (range game-rows)] (condp = i xp x yp y zp z (lvar)))))))
+             (vec (for [i (range *game-rows*)] (condp = i xp x yp y zp z (lvar)))))))
 
-(defn memo [x l out]
-  (conda
-    [(emptyo l) s#]
-    [(firsto l x) (== l out)]
-    [s# (fresh [d] (resto l d) (memo x d out))]))
+(def ^{:dynamic true} *make-col* make-col)
 
 (defn nonmembero
   "A relation where l is a collection, such that x is not an element of l"
@@ -145,41 +146,41 @@
 (run* [q]
   (fresh [l]
     (== l [[:mary :red 1] [:devil :blue 2] [:bill :yellow 3]])
-    (col-not-betweeno l (make-col :mary ) :green (make-col :bill ))
+    (col-not-betweeno l (*make-col* :mary ) :green (*make-col* :bill ))
     (== q true)
     ))
 
 (defmacro righto [g x y]
-  (let [xc (make-col x)
-        yc (make-col y)]
+  (let [xc (*make-col* x)
+        yc (*make-col* y)]
     ;(println x xc y yc)
     `(colrighto ~g ~xc ~yc)))
 
 (macro/mexpand-all `(righto g ~'ivory ~'green))
 
 (defmacro nexto [l x y]
-  (let [xc (make-col x)
-        yc (make-col y)]
+  (let [xc (*make-col* x)
+        yc (*make-col* y)]
     `(conde
        ((colrighto ~l ~xc ~yc))
        ((colrighto ~l ~yc ~xc)))))
 
 (defmacro betweeno [g a b c]
-  (let [ac (make-col a)
-        bc (make-col b)
-        cc (make-col c)]
+  (let [ac (*make-col* a)
+        bc (*make-col* b)
+        cc (*make-col* c)]
     `(all
-       ;    (trace-lvars (str :betweeno ~a ~b ~c) ~g)
+;           (trace-lvars (str :betweeno ~a ~b ~c) ~g)
        (not-in-firsto ~g ~b)
        (not-in-lasto ~g ~b)
        (colbetweeno ~g ~ac ~bc ~cc))
     ))
 
 (defmacro not-betweeno [g a b c]
-  (let [ac (make-col a)
-        cc (make-col c)]
+  (let [ac (*make-col* a)
+        cc (*make-col* c)]
     `(all
-       ;       (trace-lvars (str :not-betweeno " " ~a " " ~b " " ~c) ~g)
+;              (trace-lvars (str :not-betweeno " " ~a " " ~b " " ~c) ~g)
        (col-not-betweeno ~g ~ac ~b ~cc))))
 
 (defn col-left-righto [l left right]
@@ -195,32 +196,32 @@
     (== q [a b])))
 
 (defmacro left-righto [l left right]
-  (let [lc (make-col left)
-        rc (make-col right)]
+  (let [lc (*make-col* left)
+        rc (*make-col* right)]
     `(all
        (not-in-lasto ~l ~left)
        (not-in-firsto ~l ~right)
        (col-left-righto ~l ~lc ~rc))))
 
 (defmacro samecolo [g & items]
-  (let [col (apply make-col items)]
+  (let [col (apply *make-col* items)]
     ; (println :samecolo items col g)
     `(all
-       ;      (trace-lvars (str :samecolo ~col ~items) ~g)
+;             (trace-lvars (str :samecolo ~col ~items) ~g)
        (membero ~col ~g))
     ))
 
 (defmacro in-colo [g x n]
-  (let [xc (make-col x)]
+  (let [xc (*make-col* x)]
     `(all
-       ;      (trace-lvars (str :in-colo ~xc) ~n ~g)
-       (== ~g [~@(for [i (range game-cols)] (if (= i n) `~xc `~(lvar)))]))))
+;             (trace-lvars (str :in-colo ~xc) ~n ~g)
+       (== ~g [~@(for [i (range *game-cols*)] (if (= i n) `~xc `~(lvar)))]))))
 
 (macro/mexpand-1 '(in-colo g :milk 2))
 
 (defmacro diffcolo [g x y]
-  (let [xc (make-col x)
-        yc (make-col y)]
+  (let [xc (*make-col* x)
+        yc (*make-col* y)]
     `(fresh [xcp# ycp#]
        ;      (trace-lvars (str :diffcolo ~x ~xc ~y ~yc) xcp# ycp# ~g)
        (ntho ~g ~xc xcp#)
@@ -234,7 +235,7 @@
       [(samecolo g x a)]
       [(samecolo g x b)])))
 
-(defn grid [rows cols]
+(defn grid [cols rows]
   (vec (for [c (range cols)] (vec (for [r (range rows)] (lvar))))))
 
 (defn zebrao [hs]
@@ -258,11 +259,11 @@
 ;(println (run 1 [q] (zebrao q)))
 
 (defmacro setup
-  ([g p a] `(membero ~(make-col a) ~g))
-  ([g p a & rest]
+  ([g a] `(membero ~(*make-col* a) ~g))
+  ([g a & rest]
     `(all
-       (setup ~g ~p ~a)
-       (setup ~g ~p ~@rest))))
+       (setup ~g ~a)
+       (setup ~g ~@rest))))
 
 (macroexpand-1 `(setup g 0 ~'norwegian))
 
@@ -295,32 +296,87 @@
 ;(run 1 [q] (zo q))
 
 
+(macro/mexpand-1 '(setup g 1 2 3))
+
 (macro/mexpand-all '(setup g 0 :mary :bill :devil ))
 (macroexpand-1 '(setup g 0 :mary :bill :devil ))
 
 (macro/mexpand-all '(all (diffcolo :mary :bill g) (diffcolo :mary :devil g) (diffcolo :bill :devil g)))
 
-(defn s3x3-1 [g]
+(defmacro defgame [name & body]
+  (let [[_ t cs rs] (first (re-seq #"([sz])(\d)x(\d)-\d+" (str name)))
+        cols (read-string cs)
+        rows (read-string rs)
+        g (gensym "game_")
+        pieces (keys (sherlock-map cols rows))
+        ]
+  `(defn ~name []
+    (binding [*col-map* (sherlock-map ~cols ~rows)
+              *game-rows* ~rows
+              *game-cols* ~cols
+              *make-col* (memoize make-col)]
+     (run 1 [~g]
+        (== ~g (grid ~cols ~rows))
+       (setup ~g ~@pieces)
+       ~@(map (fn [f] `(~(first f) ~g ~@(next f))) body)
+       )))))
+
+(macro/mexpand '(doto g   (in-colo :mary 0)
+                  (samecolo :red 1)
+                  (betweeno :mary :yellow :bill )
+                  (left-righto :devil :bill )
+                  (not-betweeno :bill 2 :blue )))
+
+(macro/mexpand-1
+
+'(defgame s3x3-1
+  (in-colo :mary 0)
+  (samecolo :red 1)
+  (betweeno :mary :yellow :bill )
+  (left-righto :devil :bill )
+  (println :boo)
+  (not-betweeno :bill 2 :blue ))
+)
+
+(defgame s3x3-1
+  (setup :mary :devil :bill )
+  (setup :red :yellow :blue )
+  (in-colo :mary 0)
+  (samecolo :red 1)
+  (betweeno :mary :yellow :bill )
+  (left-righto :devil :bill )
+  (println :boo)
+  (not-betweeno :bill 2 :blue ))
+
+(defn s3x3-1a [g]
   (all
     (== (grid 3 3) g)
-    (setup g 0 :mary :devil :bill )
-    (setup g 1 :red :yellow :blue )
-    (setup g 2 1 2 3)
-    ;    (setup g 1 :blue)
-    ;    (setup g 2 2 3)
+    (setup g :mary :devil :bill )
+    (setup g :red :yellow :blue )
+    (setup g 1 2 3)
     (in-colo g :mary 0)
     (samecolo g :red 1)
-    (betweeno g :mary :yellow :bill)
-    (left-righto g :devil :bill)
-    (not-betweeno g :bill 2 :blue)
-    ))
+    (betweeno g :mary :yellow :bill )
+    (left-righto g :devil :bill )
+    (println g :boo )
+    (not-betweeno g :bill 2 :blue )))
 
-(defn s3x3-2 [g]
+(defgame s3x3-2
+    (in-colo :devil 2)
+    (samecolo :blue 2)
+    (diffcolo :bill 1)
+    (nexto :red 2)
+    (nexto 1 3)
+    (left-righto :bill 2)
+    (not-betweeno 3 :blue :devil)
+    )
+
+(defn s3x3-2a [g]
   (all
     (== (grid 3 3) g)
-    (setup g 0 :mary :devil :bill )
-    (setup g 1 :red :yellow :blue )
-    (setup g 2 1 2 3)
+    (setup g :mary :devil :bill )
+    (setup g :red :yellow :blue )
+    (setup g 1 2 3)
     (in-colo g :devil 2)
     (samecolo g :blue 2)
     (diffcolo g :bill 1)
@@ -334,9 +390,9 @@
 (defn s3x3-3 [g]
   (all
     (== (grid 3 3) g)
-    (setup g 0 :mary :devil :bill )
-    (setup g 1 :red :yellow :blue )
-    (setup g 2 1 2 3)
+    (setup g :mary :devil :bill )
+    (setup g :red :yellow :blue )
+    (setup g 1 2 3)
     (in-colo g :yellow 2)
     (samecolo g :bill :blue 3)
     (samecolo g :mary 1)
@@ -348,9 +404,9 @@
 (defn s3x3-4 [g]
   (all
     (== (grid 3 3) g)
-    (setup g 0 :mary :devil :bill )
-    (setup g 1 :red :yellow :blue )
-    (setup g 2 1 2 3)
+    (setup g :mary :devil :bill )
+    (setup g :red :yellow :blue )
+    (setup g 1 2 3)
     (samecolo g :blue :bill )
     (diffcolo g :yellow 2)
     (betweeno g :blue :yellow :red)
@@ -362,9 +418,9 @@
 (defn s3x3-5 [g]
   (all
     (== (grid 3 3) g)
-    (setup g 0 :mary :devil :bill )
-    (setup g 1 :red :yellow :blue )
-    (setup g 2 1 2 3)
+    (setup g :mary :devil :bill )
+    (setup g :red :yellow :blue )
+    (setup g 1 2 3)
     (samecolo g :devil 1)
     (diffcolo g :bill :red)
     (betweeno g :blue :mary :red)
@@ -374,5 +430,22 @@
 
 
 ; (in-ns 'logic_exploration.sherlock)
-; (run 1 [q] (s3x3-1 q))
+; (run 1 [q] (s3x3-5 q))
 
+(defgame s5x5-1
+  (samecolo :green 3 :orange)
+  (samecolo 3 :one-way)
+  (samecolo :devil 1 :cherry)
+  (samecolo 4 :bananna)
+  (samecolo 5 :speed)
+  (nexto :beardy :one-way)
+  (not-betweeno :pear :rr 5)
+  (left-righto :rr :speed)
+  (not-betweeno :mary :bananna :blue)
+  (not-betweeno :brown :stop :devil)
+  (not-betweeno :orange :hospital :speed)
+  (betweeno :yellow :mary 4)
+  (nexto :baby :hospital)
+  (betweeno 2 :devil 5)
+  (nexto :bananna :one-way)
+  (left-righto 1 :orange))
