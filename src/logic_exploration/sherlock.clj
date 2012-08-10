@@ -165,9 +165,7 @@
         bc (make-col b)
         cc (make-col c)]
   `(all
-    (trace-lvars (str :betweeno ~a ~b ~c) ~g)
-;     (println ~ac ~bc ~cc)
-
+;    (trace-lvars (str :betweeno ~a ~b ~c) ~g)
     ;(not-first-lasto ~bc ~g)
     (colbetweeno ~ac ~bc ~cc ~g))
     ))
@@ -176,7 +174,7 @@
   (let [ac (make-col a)
         cc (make-col c)]
     `(all
-       (trace-lvars (str :not-betweeno " " ~a " " ~b " " ~c) ~g)
+;       (trace-lvars (str :not-betweeno " " ~a " " ~b " " ~c) ~g)
        (col-not-betweeno ~ac ~b ~cc ~g))))
 
 (defn col-left-righto [left right l]
@@ -200,14 +198,14 @@
   (let [col (apply make-col items)]
     (println :samecolo items col cols)
     `(all
-      (trace-lvars (str :samecolo ~col ~items) ~cols)
+;      (trace-lvars (str :samecolo ~col ~items) ~cols)
       (membero ~col ~cols))
     ))
 
 (defmacro in-colo [g x n]
   (let [xc (make-col x)]
     `(all
-      (trace-lvars (str :in-colo ~xc) ~n ~g)
+;      (trace-lvars (str :in-colo ~xc) ~n ~g)
       (== ~g [~@(for [i (range game-cols)] (if (= i n) `~xc `~(lvar)))]))))
 
 (macro/mexpand-1 '(in-colo g :milk 2))
@@ -216,7 +214,7 @@
   (let [xc (make-col x)
         yc (make-col y)]
     `(fresh [xcp# ycp#]
-      (trace-lvars (str :diffcolo ~x ~xc ~y ~yc) xcp# ycp# ~cols)
+;      (trace-lvars (str :diffcolo ~x ~xc ~y ~yc) xcp# ycp# ~cols)
       (ntho ~cols ~xc xcp#)
       (ntho ~cols ~yc ycp#)
       (!= xcp# ycp#))))
@@ -302,13 +300,64 @@
     (not-betweeno :bill 2 :blue g)
     ))
 
-(macro/mexpand-all '(all
-                        (in-colo g :mary 0)
-                        (samecolo g :red 1)
-                        (betweeno :mary :yellow :bill g)
-                        (left-righto :devil :bill g)
-                        (not-betweeno :bill 2 :blue g)
-                        ))
+(defn s3x3-2 [g]
+  (all
+    (== (grid 3 3) g)
+    (setup g 0 :mary :devil :bill)
+    (setup g 1 :red :yellow :blue)
+    (setup g 2 1 2 3)
+    (in-colo g :devil 2)
+    (samecolo g :blue 2)
+    (diffcolo g :bill 1)
+    (nexto :red 2 g)
+    (nexto 1 3 g)
+    (left-righto :bill 2 g)
+    (not-betweeno 3 :blue :devil g)
+    ))
+
+
+(defn s3x3-3 [g]
+  (all
+    (== (grid 3 3) g)
+    (setup g 0 :mary :devil :bill)
+    (setup g 1 :red :yellow :blue)
+    (setup g 2 1 2 3)
+    (in-colo g :yellow 2)
+    (samecolo g :bill :blue 3)
+    (samecolo g :mary 1)
+    (nexto :yellow 3 g)
+    (left-righto 3 :mary g)
+    (left-righto :red :yellow g)
+    ))
+
+(defn s3x3-4 [g]
+  (all
+    (== (grid 3 3) g)
+    (setup g 0 :mary :devil :bill)
+    (setup g 1 :red :yellow :blue)
+    (setup g 2 1 2 3)
+    (samecolo g :blue :bill)
+    (diffcolo g :yellow 2)
+    (betweeno :blue :yellow :red g)
+    (not-betweeno 3 :blue :red g)
+    (left-righto 1 2 g)
+    (nexto :bill :mary g)
+    ))
+
+(defn s3x3-5 [g]
+  (all
+    (== (grid 3 3) g)
+    (setup g 0 :mary :devil :bill)
+    (setup g 1 :red :yellow :blue)
+    (setup g 2 1 2 3)
+    (samecolo g :devil 1)
+    (diffcolo g :bill :red)
+    (betweeno :blue :mary :red g)
+    (nexto :mary 2 g)
+    (left-righto 2 :devil g)
+    ))
+
+
 ; (in-ns 'logic_exploration.sherlock)
 ; (run 1 [q] (s3x3-1 q))
 
